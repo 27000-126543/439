@@ -595,7 +595,7 @@ def check_due_drills() -> List[Drill]:
         db.close()
 
 
-async def run_drill_concurrently(drill_ids: List[int]) -> Dict:
+def run_drill_concurrently(drill_ids: List[int]) -> Dict:
     drill_logger.info(f"Running {len(drill_ids)} drills concurrently")
     
     tasks = []

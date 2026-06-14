@@ -312,11 +312,21 @@ def query_work_orders(
     business_unit: str = None,
     severity: str = None,
     status: str = None,
-    assignee: str = None
+    assignee: str = None,
+    drill_type: str = None,
+    start_date: datetime = None,
+    end_date: datetime = None
 ) -> List[Dict]:
     db = SessionLocal()
     try:
         query = db.query(ImprovementWorkOrder)
+        
+        if drill_type:
+            query = query.join(
+                DrillIssue, ImprovementWorkOrder.issue_id == DrillIssue.id
+            ).join(
+                Drill, DrillIssue.drill_id == Drill.id
+            ).filter(Drill.drill_type == drill_type)
         
         if business_unit:
             query = query.filter(ImprovementWorkOrder.assignee_department == business_unit)
@@ -326,6 +336,10 @@ def query_work_orders(
             query = query.filter(ImprovementWorkOrder.status == status)
         if assignee:
             query = query.filter(ImprovementWorkOrder.assignee == assignee)
+        if start_date:
+            query = query.filter(ImprovementWorkOrder.created_at >= start_date)
+        if end_date:
+            query = query.filter(ImprovementWorkOrder.created_at <= end_date)
         
         orders = query.order_by(ImprovementWorkOrder.created_at.desc()).all()
         
@@ -334,6 +348,21 @@ def query_work_orders(
             logs = db.query(WorkOrderLog).filter(
                 WorkOrderLog.work_order_id == order.id
             ).order_by(WorkOrderLog.created_at).all()
+            
+            drill_info = None
+            try:
+                issue = db.query(DrillIssue).filter(DrillIssue.id == order.issue_id).first()
+                if issue:
+                    drill = db.query(Drill).filter(Drill.id == issue.drill_id).first()
+                    if drill:
+                        drill_info = {
+                            "drill_id": drill.id,
+                            "drill_name": drill.name,
+                            "drill_type": drill.drill_type,
+                            "drill_status": drill.status
+                        }
+            except Exception:
+                pass
             
             result.append({
                 "id": order.id,
@@ -350,6 +379,7 @@ def query_work_orders(
                 "resolution_details": order.resolution_details,
                 "created_at": order.created_at.isoformat(),
                 "updated_at": order.updated_at.isoformat(),
+                "drill_info": drill_info,
                 "history": [
                     {
                         "action": log.action,

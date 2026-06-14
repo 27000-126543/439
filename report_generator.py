@@ -471,6 +471,7 @@ def generate_drill_reports(drill_id: int) -> Optional[DrillReport]:
         if not report:
             return None
         
+        report_id = report.id
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         pdf_path = os.path.join(config.REPORT_DIR, f"drill_{drill_id}_report_{timestamp}.pdf")
         excel_path = os.path.join(config.REPORT_DIR, f"drill_{drill_id}_report_{timestamp}.xlsx")
@@ -480,9 +481,12 @@ def generate_drill_reports(drill_id: int) -> Optional[DrillReport]:
         
         db = SessionLocal()
         try:
-            report.pdf_path = pdf_result
-            report.excel_path = excel_result
-            db.commit()
+            report_db = db.query(DrillReport).get(report_id)
+            if report_db:
+                report_db.pdf_path = pdf_result
+                report_db.excel_path = excel_result
+                db.commit()
+                db.refresh(report_db)
         finally:
             db.close()
         
@@ -497,7 +501,11 @@ def generate_drill_reports(drill_id: int) -> Optional[DrillReport]:
             }
         )
         
-        return report
+        db2 = SessionLocal()
+        try:
+            return db2.query(DrillReport).get(report_id)
+        finally:
+            db2.close()
     except Exception as e:
         report_logger.error(f"Failed to generate drill reports: {str(e)}", exc_info=True)
         return None

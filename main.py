@@ -664,9 +664,12 @@ def list_work_orders(
     business_unit: Optional[str] = None,
     severity: Optional[str] = None,
     status: Optional[str] = None,
-    assignee: Optional[str] = None
+    assignee: Optional[str] = None,
+    drill_type: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None
 ):
-    orders = query_work_orders(business_unit, severity, status, assignee)
+    orders = query_work_orders(business_unit, severity, status, assignee, drill_type, start_date, end_date)
     return {"count": len(orders), "data": orders}
 
 
@@ -777,8 +780,8 @@ def task_stats():
 
 
 @app.post("/api/drills/batch-start")
-async def batch_start_drills(drill_ids: List[int]):
-    result = await run_drill_concurrently(drill_ids)
+def batch_start_drills(drill_ids: List[int]):
+    result = run_drill_concurrently(drill_ids)
     return result
 
 
